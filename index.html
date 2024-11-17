@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .panel h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .weather-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .weather-icon {
+            width: 64px;
+            height: 64px;
+        }
+        .news-item {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .news-item:last-child {
+            border-bottom: none;
+        }
+        .random-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Stock Panel -->
+        <div class="panel">
+            <h2>Stock Prices</h2>
+            <table id="stockTable">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Weather Panel -->
+        <div class="panel">
+            <h2>Ranchi Weather</h2>
+            <div id="weatherInfo" class="weather-info">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <!-- News Panel -->
+        <div class="panel">
+            <h2>Today's News</h2>
+            <div id="newsContainer">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Random Photo Panel -->
+        <div class="panel">
+            <h2>Random Photo</h2>
+            <div id="photoContainer">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Replace with your API keys
+        const CONFIG = {
+            ALPHA_VANTAGE_API_KEY: 'N9XX62WSPZYN41MU',
+            OPENWEATHER_API_KEY: 'YOUR_OPENWEATHER_API_KEY',
+            NEWS_API_KEY: '357dc6c103024f8391ca798b096d410a'
+        };
+
+        // Stock data function
+        async function fetchStockData() {
+            const symbols = ['ITC.BSE', 'HUL.BSE', 'HAL.BSE', 'LT.BSE', 'INFY.BSE'];
+            const tableBody = document.querySelector('#stockTable tbody');
+            
+            try {
+                // In a real application, you would use the Alpha Vantage API
+                // For demo, using mock data
+                const mockData = {
+                    'ITC.BSE': { price: '440.25', change: '+2.30' },
+                    'HUL.BSE': { price: '2544.15', change: '-15.20' },
+                    'HAL.BSE': { price: '2789.90', change: '+45.60' },
+                    'LT.BSE': { price: '3456.75', change: '+28.90' },
+                    'INFY.BSE': { price: '1434.50', change: '-12.40' }
+                };
+
+                tableBody.innerHTML = symbols.map(symbol => `
+                    <tr>
+                        <td>${symbol.replace('.BSE', '')}</td>
+                        <td>₹${mockData[symbol].price}</td>
+                        <td style="color: ${mockData[symbol].change.startsWith('+') ? 'green' : 'red'}">
+                            ${mockData[symbol].change}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="3">Error loading stock data</td></tr>';
+            }
+        }
+
+        // Weather data function
+        async function fetchWeatherData() {
+            const weatherContainer = document.getElementById('weatherInfo');
+            
+            try {
+                const response = await fetch(
+                    `https://api.openweathermap.org/data/2.5/weather?q=Ranchi,IN&units=metric&appid=${CONFIG.OPENWEATHER_API_KEY}`
+                );
+                const data = await response.json();
+                
+                weatherContainer.innerHTML = `
+                    <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" 
+                         alt="Weather icon" 
+                         class="weather-icon">
+                    <div>
+                        <h3>${Math.round(data.main.temp)}°C</h3>
+                        <p>${data.weather[0].description}</p>
+                        <p>Humidity: ${data.main.humidity}%</p>
+                    </div>
+                `;
+            } catch (error) {
+                weatherContainer.innerHTML = 'Error loading weather data';
+            }
+        }
+
+        // News data function
+        async function fetchNewsData() {
+            const newsContainer = document.getElementById('newsContainer');
+            
+            try {
+                const response = await fetch(
+                    `https://newsapi.org/v2/top-headlines?country=in&apiKey=${CONFIG.NEWS_API_KEY}`
+                );
+                const data = await response.json();
+                
+                newsContainer.innerHTML = data.articles
+                    .slice(0, 3)
+                    .map(article => `
+                        <div class="news-item">
+                            <h4>${article.title}</h4>
+                            <p>${article.description || ''}</p>
+                        </div>
+                    `)
+                    .join('');
+            } catch (error) {
+                newsContainer.innerHTML = 'Error loading news data';
+            }
+        }
+
+        // Random photo function
+        async function fetchRandomPhoto() {
+            const photoContainer = document.getElementById('photoContainer');
+            
+            try {
+                const response = await fetch('https://picsum.photos/500/300');
+                photoContainer.innerHTML = `
+                    <img src="${response.url}" 
+                         alt="Random photo" 
+                         class="random-image">
+                `;
+            } catch (error) {
+                photoContainer.innerHTML = 'Error loading photo';
+            }
+        }
+
+        // Initial load
+        fetchStockData();
+        fetchWeatherData();
+        fetchNewsData();
+        fetchRandomPhoto();
+
+        // Refresh data periodically
+        setInterval(fetchStockData, 60000); // Every minute
+        setInterval(fetchWeatherData, 300000); // Every 5 minutes
+        setInterval(fetchNewsData, 300000); // Every 5 minutes
+        setInterval(fetchRandomPhoto, 300000); // Every 5 minutes
+    </script>
+</body>
+</html>
